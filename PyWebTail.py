@@ -11,10 +11,10 @@ PyWebTail.py
 
 import sys
 import os
+import argparse
 from time import time, strftime, localtime
 from SocketServer import ThreadingMixIn
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-from optparse import OptionParser
 
 
 __author__ = "João Pinto"
@@ -29,15 +29,16 @@ __status__ = "Production"
 
 def parse_args():
     """ Parse command line arguments """
-    parser = OptionParser()
-    parser.add_option("-n", "--lines K", 
-                      action="store", type="int", dest="lines", default=10,
+    parser = argparse.ArgumentParser(description="Utility that creates a minimal HTTP web server that can be used to export a log file tail.")
+
+    parser.add_argument("-n", "--lines K", 
+                      action="store", type=int, dest="lines", default=10,
                       help="output the last K lines, instead of the last 10")    
-    parser.add_option("-l", "--listener-port", 
-                      action="store", type="int", dest="port",
+    parser.add_argument("-l", "--listener-port", 
+                      action="store", type=int, dest="port", required=True,
                       help="Specifies the HTTP listener port")
-    (options, args) = parser.parse_args()
-    return (options, args)
+    parser.add_argument("log_file", help="the file for which the tail should be shown")
+    return parser.parse_args()
 
 
 def tail(f, lines=10, _block_size=512):
@@ -81,12 +82,8 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     pass
 
 def main():
-    (options, args) = parse_args()
-    if not options.port or len(args) < 1:
-        print "Usage: %s ( log_file | logs_directory ) -l port" \
-            % sys.argv[0]
-        sys.exit(2)
-    tail_filename = args[0]
+    options = parse_args()
+    tail_filename = options.log_file
     server = ThreadingHTTPServer( 
             ("0.0.0.0", options.port), TailHandler )
     server.tail_filename = tail_filename
